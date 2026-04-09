@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Pencil, Eye, EyeOff, Copy, KeyRound } from "lucide-react";
+import { Plus, Trash2, Pencil, Eye, EyeOff, Copy, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { getProject, getEnvironment, createVariable, updateVariable, deleteVariable } from "@/lib/store";
 import { EnvVariable } from "@/lib/types";
 import { toast } from "sonner";
@@ -14,10 +14,8 @@ export default function EnvironmentDetail() {
   const { projectId, envId } = useParams<{ projectId: string; envId: string }>();
   const [project, setProject] = useState(() => getProject(projectId!));
   const [env, setEnv] = useState(() => getEnvironment(projectId!, envId!));
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [editingVar, setEditingVar] = useState<EnvVariable | null>(null);
-  const [deletingVar, setDeletingVar] = useState<EnvVariable | null>(null);
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
@@ -29,7 +27,7 @@ export default function EnvironmentDetail() {
 
   if (!project || !env) {
     return (
-      <div className="min-h-screen flex items-center justify-center animate-fade-in">
+      <div className="flex items-center justify-center p-20 animate-fade-in">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">Environment not found</p>
           <Button asChild variant="outline" className="btn-press">
@@ -40,8 +38,8 @@ export default function EnvironmentDetail() {
     );
   }
 
-  const openCreate = () => { setEditingVar(null); setKey(""); setValue(""); setDialogOpen(true); };
-  const openEdit = (v: EnvVariable) => { setEditingVar(v); setKey(v.key); setValue(v.value); setDialogOpen(true); };
+  const openCreate = () => { setEditingVar(null); setKey(""); setValue(""); setSheetOpen(true); };
+  const openEdit = (v: EnvVariable) => { setEditingVar(v); setKey(v.key); setValue(v.value); setSheetOpen(true); };
 
   const handleSave = () => {
     if (!key.trim()) return;
@@ -52,16 +50,13 @@ export default function EnvironmentDetail() {
       createVariable(project.id, env.id, key.trim(), value);
       toast.success("Variable added");
     }
-    setDialogOpen(false);
+    setSheetOpen(false);
     refresh();
   };
 
-  const handleDelete = () => {
-    if (!deletingVar) return;
-    deleteVariable(project.id, env.id, deletingVar.id);
+  const handleDelete = (v: EnvVariable) => {
+    deleteVariable(project.id, env.id, v.id);
     toast.success("Variable deleted");
-    setDeleteDialogOpen(false);
-    setDeletingVar(null);
     refresh();
   };
 
@@ -81,93 +76,87 @@ export default function EnvironmentDetail() {
   const maskValue = (val: string) => "•".repeat(Math.min(val.length, 32));
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/80 glass sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
-            <Button variant="ghost" size="icon" asChild className="h-8 w-8 btn-press">
-              <Link to={`/project/${project.id}`}><ArrowLeft className="h-4 w-4" /></Link>
-            </Button>
-            <Link to="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
-            <span>/</span>
-            <Link to={`/project/${project.id}`} className="hover:text-foreground transition-colors">{project.name}</Link>
-            <span>/</span>
-            <span className="text-foreground font-medium">{env.name}</span>
+    <div className="p-6 max-w-6xl mx-auto">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 animate-fade-in">
+        <Link to="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
+        <span>/</span>
+        <Link to={`/project/${project.id}`} className="hover:text-foreground transition-colors">{project.name}</Link>
+        <span>/</span>
+        <span className="text-foreground font-medium">{env.name}</span>
+      </div>
+
+      <div className="flex items-center justify-between mb-8 animate-fade-in">
+        <h1 className="text-xl font-bold tracking-tight">{env.name} Variables</h1>
+        <Button onClick={openCreate} size="sm" className="btn-press">
+          <Plus className="h-4 w-4" /> Add Variable
+        </Button>
+      </div>
+
+      {env.variables.length === 0 ? (
+        <div className="text-center py-16 animate-fade-in-up">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <KeyRound className="h-7 w-7 text-primary/60" />
           </div>
-          <div className="flex items-center justify-between animate-fade-in">
-            <h1 className="text-xl font-bold tracking-tight">{env.name} Variables</h1>
-            <Button onClick={openCreate} size="sm" className="btn-press">
-              <Plus className="h-4 w-4" /> Add Variable
-            </Button>
-          </div>
+          <p className="text-muted-foreground text-sm mb-4">
+            No variables yet. Add your first key-value pair.
+          </p>
+          <Button onClick={openCreate} size="sm" className="btn-press">
+            <Plus className="h-4 w-4" /> Add Variable
+          </Button>
         </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {env.variables.length === 0 ? (
-          <div className="text-center py-16 animate-fade-in-up">
-            <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <KeyRound className="h-7 w-7 text-primary/60" />
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              No variables yet. Add your first key-value pair.
-            </p>
-            <Button onClick={openCreate} size="sm" className="btn-press">
-              <Plus className="h-4 w-4" /> Add Variable
-            </Button>
-          </div>
-        ) : (
-          <div className="border rounded-xl overflow-hidden bg-card animate-fade-in-up">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[35%]">Key</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
+      ) : (
+        <div className="border rounded-xl overflow-hidden bg-card animate-fade-in-up">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[35%]">Key</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead className="w-[140px] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {env.variables.map((v, i) => (
+                <TableRow key={v.id} className={`animate-fade-in stagger-${Math.min(i + 1, 6)}`}>
+                  <TableCell>
+                    <code className="font-mono text-sm font-medium text-primary">{v.key}</code>
+                  </TableCell>
+                  <TableCell>
+                    <code className="font-mono text-sm text-muted-foreground">
+                      {revealedIds.has(v.id) ? v.value : maskValue(v.value)}
+                    </code>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => toggleReveal(v.id)}>
+                        {revealedIds.has(v.id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => copyValue(v.value)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => openEdit(v)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive btn-press" onClick={() => handleDelete(v)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {env.variables.map((v, i) => (
-                  <TableRow key={v.id} className={`animate-fade-in stagger-${Math.min(i + 1, 6)}`}>
-                    <TableCell>
-                      <code className="font-mono text-sm font-medium text-primary">{v.key}</code>
-                    </TableCell>
-                    <TableCell>
-                      <code className="font-mono text-sm text-muted-foreground">
-                        {revealedIds.has(v.id) ? v.value : maskValue(v.value)}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => toggleReveal(v.id)}>
-                          {revealedIds.has(v.id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => copyValue(v.value)}>
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => openEdit(v)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive btn-press" onClick={() => { setDeletingVar(v); setDeleteDialogOpen(true); }}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </main>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="animate-scale-in">
-          <DialogHeader>
-            <DialogTitle>{editingVar ? "Edit Variable" : "Add Variable"}</DialogTitle>
-            <DialogDescription>{editingVar ? "Update the key-value pair." : "Add a new environment variable."}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
+      {/* Variable Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editingVar ? "Edit Variable" : "Add Variable"}</SheetTitle>
+            <SheetDescription>{editingVar ? "Update the key-value pair." : "Add a new environment variable."}</SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 py-6">
             <div className="space-y-2">
               <Label>Key</Label>
               <Input placeholder="e.g. API_KEY" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} className="font-mono" />
@@ -177,25 +166,12 @@ export default function EnvironmentDetail() {
               <Input placeholder="Enter value" value={value} onChange={(e) => setValue(e.target.value)} className="font-mono" onKeyDown={(e) => e.key === "Enter" && handleSave()} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSheetOpen(false)} className="btn-press">Cancel</Button>
             <Button onClick={handleSave} disabled={!key.trim()} className="btn-press">{editingVar ? "Save" : "Add"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="animate-scale-in">
-          <DialogHeader>
-            <DialogTitle>Delete Variable</DialogTitle>
-            <DialogDescription>Delete <code className="font-mono font-medium">{deletingVar?.key}</code>? This cannot be undone.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="btn-press">Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} className="btn-press">Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
