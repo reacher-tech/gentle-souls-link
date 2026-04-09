@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import ProjectDetail from "./pages/ProjectDetail";
 import EnvironmentDetail from "./pages/EnvironmentDetail";
 import NotFound from "./pages/NotFound";
+import AppLayout from "./components/AppLayout";
 import { isAuthenticated } from "./lib/auth";
 
 const queryClient = new QueryClient();
@@ -16,7 +17,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated()) {
     return <Navigate to="/" replace />;
   }
-  return <>{children}</>;
+  return <AppLayout>{children}</AppLayout>;
 }
 
 const App = () => (
