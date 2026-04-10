@@ -1,9 +1,8 @@
-import { FolderOpen, LayoutDashboard, Terminal, KeyRound, Server, Settings, LogOut } from "lucide-react";
+import { FolderOpen, LayoutDashboard, Terminal, KeyRound, Server, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getProjects } from "@/lib/store";
 import { getCurrentUser, logout } from "@/lib/auth";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Sidebar,
@@ -22,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,15 +41,30 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0">
-            <Terminal className="h-4 w-4 text-sidebar-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0 transition-transform duration-300 hover:rotate-12">
+              <Terminal className="h-4 w-4 text-sidebar-primary transition-all duration-300" />
+            </div>
+            {!collapsed && (
+              <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
+                Jodna ENV
+              </span>
+            )}
           </div>
-          {!collapsed && (
-            <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
-              Jodna ENV
-            </span>
-          )}
+          {/* Desktop toggle inside sidebar */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 btn-press hidden md:flex transition-transform duration-300"
+          >
+            {collapsed ? (
+              <PanelLeft className="h-4 w-4 transition-transform duration-300" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4 transition-transform duration-300" />
+            )}
+          </Button>
         </div>
       </SidebarHeader>
 
@@ -66,10 +80,10 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end
-                      className="hover:bg-sidebar-accent/50"
+                      className="hover:bg-sidebar-accent/50 group/nav"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
-                      <item.icon className="mr-2 h-4 w-4" />
+                      <item.icon className="mr-2 h-4 w-4 transition-transform duration-200 group-hover/nav:scale-110" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -85,7 +99,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center gap-2">
-              <FolderOpen className="h-3.5 w-3.5" />
+              <FolderOpen className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
               {!collapsed && <span>Projects</span>}
             </div>
           </SidebarGroupLabel>
@@ -105,10 +119,10 @@ export function AppSidebar() {
                       <SidebarMenuButton asChild>
                         <NavLink
                           to={`/project/${project.id}`}
-                          className="hover:bg-sidebar-accent/50"
+                          className="hover:bg-sidebar-accent/50 group/proj"
                           activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                         >
-                          <Server className="mr-2 h-4 w-4 shrink-0" />
+                          <Server className="mr-2 h-4 w-4 shrink-0 transition-transform duration-200 group-hover/proj:scale-110" />
                           {!collapsed && (
                             <span className="truncate">{project.name}</span>
                           )}
@@ -122,10 +136,10 @@ export function AppSidebar() {
                             <NavLink
                               key={env.id}
                               to={`/project/${project.id}/env/${env.id}`}
-                              className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+                              className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors group/env"
                               activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                             >
-                              <KeyRound className="h-3 w-3 shrink-0" />
+                              <KeyRound className="h-3 w-3 shrink-0 transition-transform duration-200 group-hover/env:rotate-12" />
                               <span className="truncate">{env.name}</span>
                               <span className="ml-auto text-[10px] text-sidebar-foreground/40">
                                 {env.variables.length}
@@ -154,9 +168,9 @@ export function AppSidebar() {
           variant="ghost"
           size="sm"
           onClick={handleLogout}
-          className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 btn-press"
+          className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 btn-press group/logout"
         >
-          <LogOut className="h-4 w-4 mr-2" />
+          <LogOut className="h-4 w-4 mr-2 transition-transform duration-200 group-hover/logout:-translate-x-0.5" />
           {!collapsed && <span>Logout</span>}
         </Button>
       </SidebarFooter>

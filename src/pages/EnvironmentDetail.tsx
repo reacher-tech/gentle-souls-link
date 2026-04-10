@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { getProject, getEnvironment, createVariable, updateVariable, deleteVariable } from "@/lib/store";
 import { EnvVariable } from "@/lib/types";
 import { toast } from "sonner";
@@ -14,7 +21,7 @@ export default function EnvironmentDetail() {
   const { projectId, envId } = useParams<{ projectId: string; envId: string }>();
   const [project, setProject] = useState(() => getProject(projectId!));
   const [env, setEnv] = useState(() => getEnvironment(projectId!, envId!));
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVar, setEditingVar] = useState<EnvVariable | null>(null);
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
@@ -38,8 +45,8 @@ export default function EnvironmentDetail() {
     );
   }
 
-  const openCreate = () => { setEditingVar(null); setKey(""); setValue(""); setSheetOpen(true); };
-  const openEdit = (v: EnvVariable) => { setEditingVar(v); setKey(v.key); setValue(v.value); setSheetOpen(true); };
+  const openCreate = () => { setEditingVar(null); setKey(""); setValue(""); setDialogOpen(true); };
+  const openEdit = (v: EnvVariable) => { setEditingVar(v); setKey(v.key); setValue(v.value); setDialogOpen(true); };
 
   const handleSave = () => {
     if (!key.trim()) return;
@@ -50,7 +57,7 @@ export default function EnvironmentDetail() {
       createVariable(project.id, env.id, key.trim(), value);
       toast.success("Variable added");
     }
-    setSheetOpen(false);
+    setDialogOpen(false);
     refresh();
   };
 
@@ -88,21 +95,21 @@ export default function EnvironmentDetail() {
 
       <div className="flex items-center justify-between mb-8 animate-fade-in">
         <h1 className="text-xl font-bold tracking-tight">{env.name} Variables</h1>
-        <Button onClick={openCreate} size="sm" className="btn-press">
-          <Plus className="h-4 w-4" /> Add Variable
+        <Button onClick={openCreate} size="sm" className="btn-press group">
+          <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" /> Add Variable
         </Button>
       </div>
 
       {env.variables.length === 0 ? (
         <div className="text-center py-16 animate-fade-in-up">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <KeyRound className="h-7 w-7 text-primary/60" />
           </div>
           <p className="text-muted-foreground text-sm mb-4">
             No variables yet. Add your first key-value pair.
           </p>
-          <Button onClick={openCreate} size="sm" className="btn-press">
-            <Plus className="h-4 w-4" /> Add Variable
+          <Button onClick={openCreate} size="sm" className="btn-press group">
+            <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" /> Add Variable
           </Button>
         </div>
       ) : (
@@ -129,16 +136,16 @@ export default function EnvironmentDetail() {
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => toggleReveal(v.id)}>
-                        {revealedIds.has(v.id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        {revealedIds.has(v.id) ? <EyeOff className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" /> : <Eye className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />}
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => copyValue(v.value)}>
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => openEdit(v)}>
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-12" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive btn-press" onClick={() => handleDelete(v)}>
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
                       </Button>
                     </div>
                   </TableCell>
@@ -149,14 +156,14 @@ export default function EnvironmentDetail() {
         </div>
       )}
 
-      {/* Variable Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>{editingVar ? "Edit Variable" : "Add Variable"}</SheetTitle>
-            <SheetDescription>{editingVar ? "Update the key-value pair." : "Add a new environment variable."}</SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4 py-6">
+      {/* Variable Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="animate-scale-in">
+          <DialogHeader>
+            <DialogTitle>{editingVar ? "Edit Variable" : "Add Variable"}</DialogTitle>
+            <DialogDescription>{editingVar ? "Update the key-value pair." : "Add a new environment variable."}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Key</Label>
               <Input placeholder="e.g. API_KEY" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} className="font-mono" />
@@ -166,12 +173,12 @@ export default function EnvironmentDetail() {
               <Input placeholder="Enter value" value={value} onChange={(e) => setValue(e.target.value)} className="font-mono" onKeyDown={(e) => e.key === "Enter" && handleSave()} />
             </div>
           </div>
-          <SheetFooter>
-            <Button variant="outline" onClick={() => setSheetOpen(false)} className="btn-press">Cancel</Button>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
             <Button onClick={handleSave} disabled={!key.trim()} className="btn-press">{editingVar ? "Save" : "Add"}</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
