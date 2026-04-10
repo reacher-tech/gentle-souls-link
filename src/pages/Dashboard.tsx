@@ -6,7 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { getProjects, createProject, updateProject, deleteProject } from "@/lib/store";
 import { getCurrentUser } from "@/lib/auth";
 import { Project } from "@/lib/types";
@@ -16,7 +23,7 @@ export default function Dashboard() {
   const user = getCurrentUser();
   const [projects, setProjects] = useState<Project[]>(getProjects());
   const [search, setSearch] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -33,14 +40,14 @@ export default function Dashboard() {
     setEditingProject(null);
     setName("");
     setDescription("");
-    setSheetOpen(true);
+    setDialogOpen(true);
   };
 
   const openEdit = (p: Project) => {
     setEditingProject(p);
     setName(p.name);
     setDescription(p.description);
-    setSheetOpen(true);
+    setDialogOpen(true);
   };
 
   const handleSave = () => {
@@ -52,7 +59,7 @@ export default function Dashboard() {
       createProject(name.trim(), description.trim());
       toast.success("Project created");
     }
-    setSheetOpen(false);
+    setDialogOpen(false);
     refresh();
   };
 
@@ -81,8 +88,8 @@ export default function Dashboard() {
               Manage your environment variables across projects
             </p>
           </div>
-          <Button onClick={openCreate} className="btn-press shrink-0">
-            <Plus className="h-4 w-4" />
+          <Button onClick={openCreate} className="btn-press shrink-0 group">
+            <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
             New Project
           </Button>
         </div>
@@ -96,7 +103,7 @@ export default function Dashboard() {
           ].map((stat, i) => (
             <div
               key={stat.label}
-              className={`rounded-xl p-4 text-center animate-fade-in-up stagger-${i + 1}`}
+              className={`rounded-xl p-4 text-center animate-fade-in-up stagger-${i + 1} hover:scale-[1.02] transition-transform duration-200`}
             >
               <div className={`inline-flex rounded-lg px-3 py-1 text-xs font-medium mb-1 ${stat.color}`}>
                 {stat.label}
@@ -123,15 +130,15 @@ export default function Dashboard() {
       {/* Projects grid */}
       {projects.length === 0 ? (
         <div className="text-center py-20 animate-fade-in-up">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <FolderOpen className="h-8 w-8 text-primary/60" />
           </div>
           <h2 className="text-lg font-semibold mb-1">No projects yet</h2>
           <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
             Create your first project to start managing environment variables across your team.
           </p>
-          <Button onClick={openCreate} className="btn-press">
-            <Plus className="h-4 w-4" />
+          <Button onClick={openCreate} className="btn-press group">
+            <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
             Create Project
           </Button>
         </div>
@@ -160,7 +167,7 @@ export default function Dashboard() {
                       className="h-7 w-7 btn-press"
                       onClick={() => openEdit(project)}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-12" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -168,7 +175,7 @@ export default function Dashboard() {
                       className="h-7 w-7 text-destructive btn-press"
                       onClick={() => handleDelete(project)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
                     </Button>
                   </div>
                 </div>
@@ -196,18 +203,18 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Create/Edit Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>{editingProject ? "Edit Project" : "New Project"}</SheetTitle>
-            <SheetDescription>
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="animate-scale-in">
+          <DialogHeader>
+            <DialogTitle>{editingProject ? "Edit Project" : "New Project"}</DialogTitle>
+            <DialogDescription>
               {editingProject
                 ? "Update project details."
                 : "Create a new project to organize your environment variables."}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4 py-6">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="project-name">Name</Label>
               <Input
@@ -229,16 +236,16 @@ export default function Dashboard() {
               />
             </div>
           </div>
-          <SheetFooter>
-            <Button variant="outline" onClick={() => setSheetOpen(false)} className="btn-press">
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={!name.trim()} className="btn-press">
               {editingProject ? "Save" : "Create"}
             </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

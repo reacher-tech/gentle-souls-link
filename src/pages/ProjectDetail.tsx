@@ -6,7 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { getProject, createEnvironment, updateEnvironment, deleteEnvironment, updateProject, deleteProject } from "@/lib/store";
 import { Environment, Project } from "@/lib/types";
 import { toast } from "sonner";
@@ -15,8 +22,8 @@ export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | undefined>(() => getProject(projectId!));
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState<"env" | "project">("env");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<"env" | "project">("env");
   const [editingEnv, setEditingEnv] = useState<Environment | null>(null);
   const [envName, setEnvName] = useState("");
   const [projectName, setProjectName] = useState(project?.name || "");
@@ -38,24 +45,24 @@ export default function ProjectDetail() {
   }
 
   const openCreateEnv = () => {
-    setSheetMode("env");
+    setDialogMode("env");
     setEditingEnv(null);
     setEnvName("");
-    setSheetOpen(true);
+    setDialogOpen(true);
   };
 
   const openEditEnv = (env: Environment) => {
-    setSheetMode("env");
+    setDialogMode("env");
     setEditingEnv(env);
     setEnvName(env.name);
-    setSheetOpen(true);
+    setDialogOpen(true);
   };
 
   const openEditProject = () => {
-    setSheetMode("project");
+    setDialogMode("project");
     setProjectName(project.name);
     setProjectDesc(project.description);
-    setSheetOpen(true);
+    setDialogOpen(true);
   };
 
   const handleSaveEnv = () => {
@@ -67,7 +74,7 @@ export default function ProjectDetail() {
       createEnvironment(project.id, envName.trim());
       toast.success("Environment created");
     }
-    setSheetOpen(false);
+    setDialogOpen(false);
     refresh();
   };
 
@@ -81,7 +88,7 @@ export default function ProjectDetail() {
     if (!projectName.trim()) return;
     updateProject(project.id, projectName.trim(), projectDesc.trim());
     toast.success("Project updated");
-    setSheetOpen(false);
+    setDialogOpen(false);
     refresh();
   };
 
@@ -114,16 +121,16 @@ export default function ProjectDetail() {
           )}
         </div>
         <div className="flex gap-2 animate-slide-in-right">
-          <Button variant="outline" size="sm" className="btn-press" onClick={openEditProject}>
-            <Pencil className="h-3.5 w-3.5" /> Edit
+          <Button variant="outline" size="sm" className="btn-press group" onClick={openEditProject}>
+            <Pencil className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-12" /> Edit
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="text-destructive hover:text-destructive btn-press"
+            className="text-destructive hover:text-destructive btn-press group"
             onClick={handleDeleteProject}
           >
-            <Trash2 className="h-3.5 w-3.5" /> Delete
+            <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" /> Delete
           </Button>
         </div>
       </div>
@@ -132,21 +139,21 @@ export default function ProjectDetail() {
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
           Environments
         </h2>
-        <Button onClick={openCreateEnv} size="sm" className="btn-press">
-          <Plus className="h-4 w-4" /> New Environment
+        <Button onClick={openCreateEnv} size="sm" className="btn-press group">
+          <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" /> New Environment
         </Button>
       </div>
 
       {project.environments.length === 0 ? (
         <div className="text-center py-16 animate-fade-in-up">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Server className="h-7 w-7 text-primary/60" />
           </div>
           <p className="text-muted-foreground text-sm mb-4">
             No environments yet. Create one like development, staging, or production.
           </p>
-          <Button onClick={openCreateEnv} size="sm" className="btn-press">
-            <Plus className="h-4 w-4" /> Create Environment
+          <Button onClick={openCreateEnv} size="sm" className="btn-press group">
+            <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" /> Create Environment
           </Button>
         </div>
       ) : (
@@ -173,7 +180,7 @@ export default function ProjectDetail() {
                   </Link>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => openEditEnv(env)}>
-                      <Pencil className="h-3.5 w-3.5" />
+                      <Pencil className="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-12" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -181,7 +188,7 @@ export default function ProjectDetail() {
                       className="h-7 w-7 text-destructive btn-press"
                       onClick={() => handleDeleteEnv(env)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
                     </Button>
                   </div>
                 </div>
@@ -198,18 +205,18 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* Sheet for env or project editing */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent>
-          {sheetMode === "env" ? (
+      {/* Dialog for env or project editing */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="animate-scale-in">
+          {dialogMode === "env" ? (
             <>
-              <SheetHeader>
-                <SheetTitle>{editingEnv ? "Edit Environment" : "New Environment"}</SheetTitle>
-                <SheetDescription>
+              <DialogHeader>
+                <DialogTitle>{editingEnv ? "Edit Environment" : "New Environment"}</DialogTitle>
+                <DialogDescription>
                   {editingEnv ? "Update the environment name." : "Add a new environment to this project."}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="space-y-2 py-6">
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 py-2">
                 <Label>Name</Label>
                 <Input
                   placeholder="e.g. production"
@@ -218,20 +225,20 @@ export default function ProjectDetail() {
                   onKeyDown={(e) => e.key === "Enter" && handleSaveEnv()}
                 />
               </div>
-              <SheetFooter>
-                <Button variant="outline" onClick={() => setSheetOpen(false)} className="btn-press">Cancel</Button>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
                 <Button onClick={handleSaveEnv} disabled={!envName.trim()} className="btn-press">
                   {editingEnv ? "Save" : "Create"}
                 </Button>
-              </SheetFooter>
+              </DialogFooter>
             </>
           ) : (
             <>
-              <SheetHeader>
-                <SheetTitle>Edit Project</SheetTitle>
-                <SheetDescription>Update project details.</SheetDescription>
-              </SheetHeader>
-              <div className="space-y-4 py-6">
+              <DialogHeader>
+                <DialogTitle>Edit Project</DialogTitle>
+                <DialogDescription>Update project details.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} />
@@ -241,14 +248,14 @@ export default function ProjectDetail() {
                   <Input value={projectDesc} onChange={(e) => setProjectDesc(e.target.value)} />
                 </div>
               </div>
-              <SheetFooter>
-                <Button variant="outline" onClick={() => setSheetOpen(false)} className="btn-press">Cancel</Button>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
                 <Button onClick={handleUpdateProject} disabled={!projectName.trim()} className="btn-press">Save</Button>
-              </SheetFooter>
+              </DialogFooter>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
