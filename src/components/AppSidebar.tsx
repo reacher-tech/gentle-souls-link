@@ -1,4 +1,4 @@
-import { FolderOpen, LayoutDashboard, Terminal, KeyRound, Server, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
+import { FolderOpen, LayoutDashboard, Terminal, KeyRound, Server, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getProjects } from "@/lib/store";
@@ -39,37 +39,34 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="relative">
+      {/* Edge toggle tab — desktop only */}
+      <button
+        onClick={toggleSidebar}
+        className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-3 z-50 h-8 w-6 items-center justify-center rounded-r-md bg-sidebar-accent border border-l-0 border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-primary/20 transition-all duration-200 shadow-sm"
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? (
+          <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200" />
+        ) : (
+          <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-200" />
+        )}
+      </button>
+
       <SidebarHeader className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0 transition-transform duration-300 hover:rotate-12">
-              <Terminal className="h-4 w-4 text-sidebar-primary transition-all duration-300" />
-            </div>
-            {!collapsed && (
-              <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
-                Jodna ENV
-              </span>
-            )}
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0 transition-transform duration-300 hover:rotate-12">
+            <Terminal className="h-4 w-4 text-sidebar-primary transition-all duration-300" />
           </div>
-          {/* Desktop toggle inside sidebar */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 btn-press hidden md:flex transition-transform duration-300"
-          >
-            {collapsed ? (
-              <PanelLeft className="h-4 w-4 transition-transform duration-300" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4 transition-transform duration-300" />
-            )}
-          </Button>
+          {!collapsed && (
+            <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
+              Jodna ENV
+            </span>
+          )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Main nav */}
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -95,7 +92,6 @@ export function AppSidebar() {
 
         <Separator className="bg-sidebar-border mx-3 w-auto" />
 
-        {/* Projects nav */}
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center gap-2">
@@ -129,7 +125,6 @@ export function AppSidebar() {
                         </NavLink>
                       </SidebarMenuButton>
 
-                      {/* Show environments under active project */}
                       {!collapsed && isProjectActive && project.environments.length > 0 && (
                         <div className="ml-6 mt-1 space-y-0.5 animate-fade-in">
                           {project.environments.map((env) => (
