@@ -7,9 +7,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex flex-row w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {isMobile && (
             <header className="h-12 flex items-center border-b bg-card/80 glass sticky top-0 z-10 px-4">
               <SidebarTrigger className="btn-press" />
