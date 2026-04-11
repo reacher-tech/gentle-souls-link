@@ -43,7 +43,7 @@ export function AppSidebar() {
       {/* Edge toggle tab — desktop only */}
       <button
         onClick={toggleSidebar}
-        className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-3 z-50 h-7 w-6 items-center justify-center rounded-r-md bg-sidebar-accent border border-l-0 border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-primary/20 transition-all duration-200 shadow-sm"
+        className="hidden md:flex absolute top-6 -right-3 z-50 h-7 w-6 items-center justify-center rounded-r-md bg-sidebar-accent border border-l-0 border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200 shadow-sm"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? (
