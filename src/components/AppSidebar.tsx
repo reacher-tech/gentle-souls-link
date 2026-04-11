@@ -39,7 +39,7 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar collapsible="icon" className="relative">
+    <Sidebar collapsible="icon">
       {/* Edge toggle tab — desktop only */}
       <button
         onClick={toggleSidebar}
