@@ -53,10 +53,10 @@ export function AppSidebar() {
         )}
       </button>
 
-      <SidebarHeader className="p-4 pt-6">
+      <SidebarHeader className="p-4 pt-8">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0 transition-transform duration-300 hover:rotate-12">
-            <Terminal className="h-4 w-4 text-sidebar-primary transition-all duration-300" />
+          <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0">
+            <Terminal className="h-4 w-4 text-sidebar-primary" />
           </div>
           {!collapsed && (
             <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
