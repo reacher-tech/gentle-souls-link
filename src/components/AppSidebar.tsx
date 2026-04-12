@@ -1,9 +1,10 @@
 import { FolderOpen, LayoutDashboard, Terminal, KeyRound, Server, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getProjects } from "@/lib/store";
 import { getCurrentUser, logout } from "@/lib/auth";
+import { apiGetProjects, apiGetEnvironments, ApiProject, ApiEnvironment } from "@/lib/api";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -20,13 +21,39 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
+interface ProjectWithEnvs extends ApiProject {
+  environments: ApiEnvironment[];
+}
+
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
-  const projects = getProjects();
   const user = getCurrentUser();
+  const [projects, setProjects] = useState<ProjectWithEnvs[]>([]);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const projs = await apiGetProjects();
+        const withEnvs = await Promise.all(
+          projs.map(async (p) => {
+            try {
+              const envs = await apiGetEnvironments(p._id);
+              return { ...p, environments: envs };
+            } catch {
+              return { ...p, environments: [] };
+            }
+          })
+        );
+        setProjects(withEnvs);
+      } catch {
+        // silently fail for sidebar
+      }
+    };
+    fetchProjects();
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -40,24 +67,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Edge toggle tab — desktop only */}
-      <button
-        onClick={toggleSidebar}
-        className="hidden md:flex absolute top-2 -right-0.5 z-50 h-7 w-6 items-center justify-center rounded-md bg-sidebar-accent border border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200 shadow-sm"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? (
-          <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200" />
-        ) : (
-          <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-200" />
-        )}
-      </button>
-
-      <SidebarHeader className="p-4 pt-8">
+      <SidebarHeader className="p-4 pt-6">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0">
-            <Terminal className="h-4 w-4 text-sidebar-primary" />
-          </div>
+          {/* Collapse/expand toggle */}
+          <button
+            onClick={toggleSidebar}
+            className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0 hover:bg-sidebar-primary/30 transition-colors duration-200"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4 text-sidebar-primary" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 text-sidebar-primary" />
+            )}
+          </button>
           {!collapsed && (
             <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
               Jodna ENV
@@ -80,7 +103,7 @@ export function AppSidebar() {
                       className="hover:bg-sidebar-accent/50 group/nav"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
-                      <item.icon className="mr-2 h-4 w-4 transition-transform duration-200 group-hover/nav:scale-110" />
+                      <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
@@ -95,7 +118,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center gap-2">
-              <FolderOpen className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
+              <FolderOpen className="h-3.5 w-3.5" />
               {!collapsed && <span>Projects</span>}
             </div>
           </SidebarGroupLabel>
@@ -109,16 +132,16 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ) : (
                 projects.map((project) => {
-                  const isProjectActive = location.pathname.startsWith(`/project/${project.id}`);
+                  const isProjectActive = location.pathname.startsWith(`/project/${project._id}`);
                   return (
-                    <SidebarMenuItem key={project.id}>
+                    <SidebarMenuItem key={project._id}>
                       <SidebarMenuButton asChild>
                         <NavLink
-                          to={`/project/${project.id}`}
+                          to={`/project/${project._id}`}
                           className="hover:bg-sidebar-accent/50 group/proj"
                           activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                         >
-                          <Server className="mr-2 h-4 w-4 shrink-0 transition-transform duration-200 group-hover/proj:scale-110" />
+                          <Server className="mr-2 h-4 w-4 shrink-0" />
                           {!collapsed && (
                             <span className="truncate">{project.name}</span>
                           )}
@@ -129,16 +152,13 @@ export function AppSidebar() {
                         <div className="ml-6 mt-1 space-y-0.5 animate-fade-in">
                           {project.environments.map((env) => (
                             <NavLink
-                              key={env.id}
-                              to={`/project/${project.id}/env/${env.id}`}
+                              key={env._id}
+                              to={`/project/${project._id}/env/${env._id}`}
                               className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors group/env"
                               activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                             >
-                              <KeyRound className="h-3 w-3 shrink-0 transition-transform duration-200 group-hover/env:rotate-12" />
+                              <KeyRound className="h-3 w-3 shrink-0" />
                               <span className="truncate">{env.name}</span>
-                              <span className="ml-auto text-[10px] text-sidebar-foreground/40">
-                                {env.variables.length}
-                              </span>
                             </NavLink>
                           ))}
                         </div>
@@ -165,7 +185,7 @@ export function AppSidebar() {
           onClick={handleLogout}
           className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 btn-press group/logout"
         >
-          <LogOut className="h-4 w-4 mr-2 transition-transform duration-200 group-hover/logout:-translate-x-0.5" />
+          <LogOut className="h-4 w-4 mr-2" />
           {!collapsed && <span>Logout</span>}
         </Button>
       </SidebarFooter>

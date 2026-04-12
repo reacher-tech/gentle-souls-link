@@ -166,7 +166,7 @@ export default function Auth() {
         </Card>
 
         <p className="text-xs text-muted-foreground text-center mt-6">
-          Demo mode — no real authentication required
+          Securely manage your environment variables
         </p>
       </div>
     </div>
