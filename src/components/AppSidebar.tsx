@@ -40,24 +40,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      {/* Edge toggle tab — desktop only */}
-      <button
-        onClick={toggleSidebar}
-        className="hidden md:flex absolute top-2 -right-0.5 z-50 h-7 w-6 items-center justify-center rounded-md bg-sidebar-accent border border-sidebar-border text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all duration-200 shadow-sm"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? (
-          <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200" />
-        ) : (
-          <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-200" />
-        )}
-      </button>
-
-      <SidebarHeader className="p-4 pt-8">
+      <SidebarHeader className="p-4 pt-6">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0">
-            <Terminal className="h-4 w-4 text-sidebar-primary" />
-          </div>
+          {/* Collapse/expand toggle */}
+          <button
+            onClick={toggleSidebar}
+            className="h-8 w-8 rounded-lg bg-sidebar-primary/20 flex items-center justify-center shrink-0 hover:bg-sidebar-primary/30 transition-colors duration-200"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4 text-sidebar-primary" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 text-sidebar-primary" />
+            )}
+          </button>
           {!collapsed && (
             <span className="text-sm font-bold text-sidebar-foreground tracking-tight animate-fade-in">
               Jodna ENV
