@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Plus, FolderOpen, Trash2, Pencil, Search } from "lucide-react";
+import { Plus, FolderOpen, Trash2, Pencil, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,21 +14,35 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getProjects, createProject, updateProject, deleteProject } from "@/lib/store";
+import { apiGetProjects, apiCreateProject, apiUpdateProject, apiDeleteProject, ApiProject } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { Project } from "@/lib/types";
 import { toast } from "sonner";
 
 export default function Dashboard() {
   const user = getCurrentUser();
-  const [projects, setProjects] = useState<Project[]>(getProjects());
+  const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingProject, setEditingProject] = useState<ApiProject | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const refresh = () => setProjects(getProjects());
+  const fetchProjects = async () => {
+    try {
+      const data = await apiGetProjects();
+      setProjects(data);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load projects");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
   const filtered = projects.filter(
     (p) =>
@@ -43,37 +57,50 @@ export default function Dashboard() {
     setDialogOpen(true);
   };
 
-  const openEdit = (p: Project) => {
+  const openEdit = (p: ApiProject) => {
     setEditingProject(p);
     setName(p.name);
     setDescription(p.description);
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
-    if (editingProject) {
-      updateProject(editingProject.id, name.trim(), description.trim());
-      toast.success("Project updated");
-    } else {
-      createProject(name.trim(), description.trim());
-      toast.success("Project created");
+    setSaving(true);
+    try {
+      if (editingProject) {
+        await apiUpdateProject(editingProject._id, name.trim(), description.trim());
+        toast.success("Project updated");
+      } else {
+        await apiCreateProject(name.trim(), description.trim());
+        toast.success("Project created");
+      }
+      setDialogOpen(false);
+      await fetchProjects();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save project");
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
-    refresh();
   };
 
-  const handleDelete = (project: Project) => {
-    deleteProject(project.id);
-    toast.success("Project deleted");
-    refresh();
+  const handleDelete = async (project: ApiProject) => {
+    try {
+      await apiDeleteProject(project._id);
+      toast.success("Project deleted");
+      await fetchProjects();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete project");
+    }
   };
 
-  const totalEnvs = projects.reduce((s, p) => s + p.environments.length, 0);
-  const totalVars = projects.reduce(
-    (s, p) => s + p.environments.reduce((se, e) => se + e.variables.length, 0),
-    0
-  );
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -95,11 +122,10 @@ export default function Dashboard() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {[
             { label: "Projects", value: projects.length, color: "bg-primary/10 text-primary" },
-            { label: "Environments", value: totalEnvs, color: "bg-accent text-accent-foreground" },
-            { label: "Variables", value: totalVars, color: "bg-secondary text-secondary-foreground" },
+            { label: "Total", value: projects.length, color: "bg-accent text-accent-foreground" },
           ].map((stat, i) => (
             <div
               key={stat.label}
@@ -150,12 +176,12 @@ export default function Dashboard() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((project, i) => (
             <Card
-              key={project.id}
+              key={project._id}
               className={`group card-hover animate-fade-in-up stagger-${Math.min(i + 1, 6)}`}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <Link to={`/project/${project.id}`} className="flex-1">
+                  <Link to={`/project/${project._id}`} className="flex-1">
                     <CardTitle className="text-base hover:text-primary transition-colors">
                       {project.name}
                     </CardTitle>
@@ -167,7 +193,7 @@ export default function Dashboard() {
                       className="h-7 w-7 btn-press"
                       onClick={() => openEdit(project)}
                     >
-                      <Pencil className="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-12" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -175,7 +201,7 @@ export default function Dashboard() {
                       className="h-7 w-7 text-destructive btn-press"
                       onClick={() => handleDelete(project)}
                     >
-                      <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -186,16 +212,10 @@ export default function Dashboard() {
                 )}
               </CardHeader>
               <CardContent>
-                <Link to={`/project/${project.id}`}>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                      {project.environments.length} env{project.environments.length !== 1 ? "s" : ""}
-                    </span>
-                    <span>
-                      {project.environments.reduce((sum, e) => sum + e.variables.length, 0)} variable
-                      {project.environments.reduce((sum, e) => sum + e.variables.length, 0) !== 1 ? "s" : ""}
-                    </span>
-                  </div>
+                <Link to={`/project/${project._id}`}>
+                  <p className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                    Click to manage environments →
+                  </p>
                 </Link>
               </CardContent>
             </Card>
@@ -240,8 +260,8 @@ export default function Dashboard() {
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={!name.trim()} className="btn-press">
-              {editingProject ? "Save" : "Create"}
+            <Button onClick={handleSave} disabled={!name.trim() || saving} className="btn-press">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingProject ? "Save" : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>

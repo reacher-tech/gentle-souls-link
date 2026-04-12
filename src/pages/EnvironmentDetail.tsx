@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Plus, Trash2, Pencil, Eye, EyeOff, Copy, KeyRound } from "lucide-react";
+import { Plus, Trash2, Pencil, Eye, EyeOff, Copy, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,24 +13,60 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getProject, getEnvironment, createVariable, updateVariable, deleteVariable } from "@/lib/store";
-import { EnvVariable } from "@/lib/types";
+import {
+  apiGetProject,
+  apiGetEnvironment,
+  apiGetVariables,
+  apiCreateVariable,
+  apiUpdateVariable,
+  apiDeleteVariable,
+  ApiProject,
+  ApiEnvironment,
+  ApiVariable,
+} from "@/lib/api";
 import { toast } from "sonner";
 
 export default function EnvironmentDetail() {
   const { projectId, envId } = useParams<{ projectId: string; envId: string }>();
-  const [project, setProject] = useState(() => getProject(projectId!));
-  const [env, setEnv] = useState(() => getEnvironment(projectId!, envId!));
+  const [project, setProject] = useState<ApiProject | null>(null);
+  const [env, setEnv] = useState<ApiEnvironment | null>(null);
+  const [variables, setVariables] = useState<ApiVariable[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingVar, setEditingVar] = useState<EnvVariable | null>(null);
+  const [editingVar, setEditingVar] = useState<ApiVariable | null>(null);
   const [key, setKey] = useState("");
   const [value, setValue] = useState("");
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
 
-  const refresh = () => {
-    setProject(getProject(projectId!));
-    setEnv(getEnvironment(projectId!, envId!));
+  const fetchData = async () => {
+    try {
+      const [proj, environment, vars] = await Promise.all([
+        apiGetProject(projectId!),
+        apiGetEnvironment(projectId!, envId!),
+        apiGetVariables(projectId!, envId!),
+      ]);
+      setProject(proj);
+      setEnv(environment);
+      setVariables(vars);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load environment");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, [projectId, envId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!project || !env) {
     return (
@@ -46,25 +82,36 @@ export default function EnvironmentDetail() {
   }
 
   const openCreate = () => { setEditingVar(null); setKey(""); setValue(""); setDialogOpen(true); };
-  const openEdit = (v: EnvVariable) => { setEditingVar(v); setKey(v.key); setValue(v.value); setDialogOpen(true); };
+  const openEdit = (v: ApiVariable) => { setEditingVar(v); setKey(v.key); setValue(v.value); setDialogOpen(true); };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!key.trim()) return;
-    if (editingVar) {
-      updateVariable(project.id, env.id, editingVar.id, key.trim(), value);
-      toast.success("Variable updated");
-    } else {
-      createVariable(project.id, env.id, key.trim(), value);
-      toast.success("Variable added");
+    setSaving(true);
+    try {
+      if (editingVar) {
+        await apiUpdateVariable(project._id, env._id, editingVar._id, key.trim(), value);
+        toast.success("Variable updated");
+      } else {
+        await apiCreateVariable(project._id, env._id, key.trim(), value);
+        toast.success("Variable added");
+      }
+      setDialogOpen(false);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save variable");
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
-    refresh();
   };
 
-  const handleDelete = (v: EnvVariable) => {
-    deleteVariable(project.id, env.id, v.id);
-    toast.success("Variable deleted");
-    refresh();
+  const handleDelete = async (v: ApiVariable) => {
+    try {
+      await apiDeleteVariable(project._id, env._id, v._id);
+      toast.success("Variable deleted");
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete variable");
+    }
   };
 
   const toggleReveal = (id: string) => {
@@ -88,7 +135,7 @@ export default function EnvironmentDetail() {
       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 animate-fade-in">
         <Link to="/dashboard" className="hover:text-foreground transition-colors">Projects</Link>
         <span>/</span>
-        <Link to={`/project/${project.id}`} className="hover:text-foreground transition-colors">{project.name}</Link>
+        <Link to={`/project/${project._id}`} className="hover:text-foreground transition-colors">{project.name}</Link>
         <span>/</span>
         <span className="text-foreground font-medium">{env.name}</span>
       </div>
@@ -100,7 +147,7 @@ export default function EnvironmentDetail() {
         </Button>
       </div>
 
-      {env.variables.length === 0 ? (
+      {variables.length === 0 ? (
         <div className="text-center py-16 animate-fade-in-up">
           <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <KeyRound className="h-7 w-7 text-primary/60" />
@@ -123,29 +170,29 @@ export default function EnvironmentDetail() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {env.variables.map((v, i) => (
-                <TableRow key={v.id} className={`animate-fade-in stagger-${Math.min(i + 1, 6)}`}>
+              {variables.map((v, i) => (
+                <TableRow key={v._id} className={`animate-fade-in stagger-${Math.min(i + 1, 6)}`}>
                   <TableCell>
                     <code className="font-mono text-sm font-medium text-primary">{v.key}</code>
                   </TableCell>
                   <TableCell>
                     <code className="font-mono text-sm text-muted-foreground">
-                      {revealedIds.has(v.id) ? v.value : maskValue(v.value)}
+                      {revealedIds.has(v._id) ? v.value : maskValue(v.value)}
                     </code>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => toggleReveal(v.id)}>
-                        {revealedIds.has(v.id) ? <EyeOff className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" /> : <Eye className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => toggleReveal(v._id)}>
+                        {revealedIds.has(v._id) ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => copyValue(v.value)}>
-                        <Copy className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => openEdit(v)}>
-                        <Pencil className="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-12" />
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive btn-press" onClick={() => handleDelete(v)}>
-                        <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -175,7 +222,9 @@ export default function EnvironmentDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
-            <Button onClick={handleSave} disabled={!key.trim()} className="btn-press">{editingVar ? "Save" : "Add"}</Button>
+            <Button onClick={handleSave} disabled={!key.trim() || saving} className="btn-press">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingVar ? "Save" : "Add"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

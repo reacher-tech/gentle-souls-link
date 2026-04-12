@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Plus, Trash2, Pencil, Server } from "lucide-react";
+import { Plus, Trash2, Pencil, Server, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,22 +14,61 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { getProject, createEnvironment, updateEnvironment, deleteEnvironment, updateProject, deleteProject } from "@/lib/store";
-import { Environment, Project } from "@/lib/types";
+import {
+  apiGetProject,
+  apiUpdateProject,
+  apiDeleteProject,
+  apiGetEnvironments,
+  apiCreateEnvironment,
+  apiUpdateEnvironment,
+  apiDeleteEnvironment,
+  ApiProject,
+  ApiEnvironment,
+} from "@/lib/api";
 import { toast } from "sonner";
 
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const [project, setProject] = useState<Project | undefined>(() => getProject(projectId!));
+  const [project, setProject] = useState<ApiProject | null>(null);
+  const [environments, setEnvironments] = useState<ApiEnvironment[]>([]);
+  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<"env" | "project">("env");
-  const [editingEnv, setEditingEnv] = useState<Environment | null>(null);
+  const [editingEnv, setEditingEnv] = useState<ApiEnvironment | null>(null);
   const [envName, setEnvName] = useState("");
-  const [projectName, setProjectName] = useState(project?.name || "");
-  const [projectDesc, setProjectDesc] = useState(project?.description || "");
+  const [projectName, setProjectName] = useState("");
+  const [projectDesc, setProjectDesc] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const refresh = () => setProject(getProject(projectId!));
+  const fetchData = async () => {
+    try {
+      const [proj, envs] = await Promise.all([
+        apiGetProject(projectId!),
+        apiGetEnvironments(projectId!),
+      ]);
+      setProject(proj);
+      setEnvironments(envs);
+      setProjectName(proj.name);
+      setProjectDesc(proj.description);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load project");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [projectId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!project) {
     return (
@@ -51,7 +90,7 @@ export default function ProjectDetail() {
     setDialogOpen(true);
   };
 
-  const openEditEnv = (env: Environment) => {
+  const openEditEnv = (env: ApiEnvironment) => {
     setDialogMode("env");
     setEditingEnv(env);
     setEnvName(env.name);
@@ -65,37 +104,59 @@ export default function ProjectDetail() {
     setDialogOpen(true);
   };
 
-  const handleSaveEnv = () => {
+  const handleSaveEnv = async () => {
     if (!envName.trim()) return;
-    if (editingEnv) {
-      updateEnvironment(project.id, editingEnv.id, envName.trim());
-      toast.success("Environment updated");
-    } else {
-      createEnvironment(project.id, envName.trim());
-      toast.success("Environment created");
+    setSaving(true);
+    try {
+      if (editingEnv) {
+        await apiUpdateEnvironment(project._id, editingEnv._id, envName.trim());
+        toast.success("Environment updated");
+      } else {
+        await apiCreateEnvironment(project._id, envName.trim());
+        toast.success("Environment created");
+      }
+      setDialogOpen(false);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save environment");
+    } finally {
+      setSaving(false);
     }
-    setDialogOpen(false);
-    refresh();
   };
 
-  const handleDeleteEnv = (env: Environment) => {
-    deleteEnvironment(project.id, env.id);
-    toast.success("Environment deleted");
-    refresh();
+  const handleDeleteEnv = async (env: ApiEnvironment) => {
+    try {
+      await apiDeleteEnvironment(project._id, env._id);
+      toast.success("Environment deleted");
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete environment");
+    }
   };
 
-  const handleUpdateProject = () => {
+  const handleUpdateProject = async () => {
     if (!projectName.trim()) return;
-    updateProject(project.id, projectName.trim(), projectDesc.trim());
-    toast.success("Project updated");
-    setDialogOpen(false);
-    refresh();
+    setSaving(true);
+    try {
+      await apiUpdateProject(project._id, projectName.trim(), projectDesc.trim());
+      toast.success("Project updated");
+      setDialogOpen(false);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update project");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteProject = () => {
-    deleteProject(project.id);
-    toast.success("Project deleted");
-    navigate("/dashboard");
+  const handleDeleteProject = async () => {
+    try {
+      await apiDeleteProject(project._id);
+      toast.success("Project deleted");
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete project");
+    }
   };
 
   const envColorMap: Record<string, string> = {
@@ -122,7 +183,7 @@ export default function ProjectDetail() {
         </div>
         <div className="flex gap-2 animate-slide-in-right">
           <Button variant="outline" size="sm" className="btn-press group" onClick={openEditProject}>
-            <Pencil className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-12" /> Edit
+            <Pencil className="h-3.5 w-3.5" /> Edit
           </Button>
           <Button
             variant="outline"
@@ -130,7 +191,7 @@ export default function ProjectDetail() {
             className="text-destructive hover:text-destructive btn-press group"
             onClick={handleDeleteProject}
           >
-            <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" /> Delete
+            <Trash2 className="h-3.5 w-3.5" /> Delete
           </Button>
         </div>
       </div>
@@ -144,7 +205,7 @@ export default function ProjectDetail() {
         </Button>
       </div>
 
-      {project.environments.length === 0 ? (
+      {environments.length === 0 ? (
         <div className="text-center py-16 animate-fade-in-up">
           <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Server className="h-7 w-7 text-primary/60" />
@@ -158,14 +219,14 @@ export default function ProjectDetail() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {project.environments.map((env, i) => (
+          {environments.map((env, i) => (
             <Card
-              key={env.id}
+              key={env._id}
               className={`group card-hover animate-fade-in-up stagger-${Math.min(i + 1, 6)}`}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <Link to={`/project/${project.id}/env/${env.id}`} className="flex-1">
+                  <Link to={`/project/${project._id}/env/${env._id}`} className="flex-1">
                     <div className="flex items-center gap-2">
                       <CardTitle className="text-base hover:text-primary transition-colors">
                         {env.name}
@@ -174,13 +235,13 @@ export default function ProjectDetail() {
                         variant="outline"
                         className={`border-0 text-xs ${envColorMap[env.name.toLowerCase()] || "bg-secondary text-secondary-foreground"}`}
                       >
-                        {env.variables.length} var{env.variables.length !== 1 ? "s" : ""}
+                        env
                       </Badge>
                     </div>
                   </Link>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-7 w-7 btn-press" onClick={() => openEditEnv(env)}>
-                      <Pencil className="h-3.5 w-3.5 transition-transform duration-200 hover:rotate-12" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
@@ -188,13 +249,13 @@ export default function ProjectDetail() {
                       className="h-7 w-7 text-destructive btn-press"
                       onClick={() => handleDeleteEnv(env)}
                     >
-                      <Trash2 className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-110" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <Link to={`/project/${project.id}/env/${env.id}`}>
+                <Link to={`/project/${project._id}/env/${env._id}`}>
                   <p className="text-xs text-muted-foreground hover:text-primary transition-colors">
                     Click to manage variables →
                   </p>
@@ -227,8 +288,8 @@ export default function ProjectDetail() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
-                <Button onClick={handleSaveEnv} disabled={!envName.trim()} className="btn-press">
-                  {editingEnv ? "Save" : "Create"}
+                <Button onClick={handleSaveEnv} disabled={!envName.trim() || saving} className="btn-press">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingEnv ? "Save" : "Create"}
                 </Button>
               </DialogFooter>
             </>
@@ -250,7 +311,9 @@ export default function ProjectDetail() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="btn-press">Cancel</Button>
-                <Button onClick={handleUpdateProject} disabled={!projectName.trim()} className="btn-press">Save</Button>
+                <Button onClick={handleUpdateProject} disabled={!projectName.trim() || saving} className="btn-press">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                </Button>
               </DialogFooter>
             </>
           )}
