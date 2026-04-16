@@ -241,7 +241,7 @@ export default function Dashboard() {
                 id="project-name"
                 placeholder="e.g. My API"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))}
                 onKeyDown={(e) => e.key === "Enter" && handleSave()}
               />
             </div>

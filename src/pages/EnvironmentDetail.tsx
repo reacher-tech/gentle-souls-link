@@ -213,7 +213,7 @@ export default function EnvironmentDetail() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Key</Label>
-              <Input placeholder="e.g. API_KEY" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} className="font-mono" />
+              <Input placeholder="e.g. API_KEY" value={key} onChange={(e) => setKey(e.target.value.replace(/[^A-Za-z0-9_]/g, '').toUpperCase())} className="font-mono" />
             </div>
             <div className="space-y-2">
               <Label>Value</Label>

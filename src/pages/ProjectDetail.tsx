@@ -282,7 +282,7 @@ export default function ProjectDetail() {
                 <Input
                   placeholder="e.g. production"
                   value={envName}
-                  onChange={(e) => setEnvName(e.target.value)}
+                  onChange={(e) => setEnvName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))}
                   onKeyDown={(e) => e.key === "Enter" && handleSaveEnv()}
                 />
               </div>
@@ -302,7 +302,7 @@ export default function ProjectDetail() {
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label>Name</Label>
-                  <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+                  <Input value={projectName} onChange={(e) => setProjectName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))} />
                 </div>
                 <div className="space-y-2">
                   <Label>Description</Label>
