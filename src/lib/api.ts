@@ -1,4 +1,4 @@
-const API_BASE = "https://jodna-env-store-backend.onrender.com/api/v1";
+const API_BASE = "https://env-store-backend.jodnatechnologies.com/api/v1";
 const TOKEN_KEY = "jodna-auth-token";
 
 function getToken(): string | null {
